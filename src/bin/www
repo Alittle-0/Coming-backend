@@ -4,7 +4,7 @@
  * Module dependencies.
  */
 require('dotenv').config()
-var app = require('../app');
+var app = require('../../app');
 var debug = require('debug')('coming:server');
 var http = require('http');
 
@@ -25,7 +25,10 @@ var server = http.createServer(app);
  * Listen on provided port, on all network interfaces.
  */
 
-server.listen(port);
+server.listen(port, () => {
+  console.log(`Server: http://localhost:${port}`);
+  console.log("Running successfully");
+});
 server.on('error', onError);
 server.on('listening', onListening);
 
