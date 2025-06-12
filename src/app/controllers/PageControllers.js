@@ -16,7 +16,7 @@ class PageController {
       //Create a new user instance
       const newUser = await new User({
         username: username,
-        email: req.body.email,
+        email: email,
         password: hashedPassword,
       });
 
