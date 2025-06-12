@@ -14,7 +14,7 @@ router.delete("/:id", middlewareController.verifyToken, userController.deleteUse
 //---------------User management routes--------------//
 
 //[GET] /admin/getAllUsers
-router.get("/", middlewareController.verifyToken, adminController.getAllUsers);
+router.get("/admin", middlewareController.verifyToken, adminController.getAllUsers);
 
 //[DELETE] /admin/deleteAllUsers
 router.delete(
