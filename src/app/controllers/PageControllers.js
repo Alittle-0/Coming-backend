@@ -1,3 +1,7 @@
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+
 class PageController {
   mainPage(req, res) {
     res.send("Hello world!");
