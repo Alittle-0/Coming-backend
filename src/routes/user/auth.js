@@ -8,12 +8,6 @@ const middlewareController = require("../../app/controllers/MiddlewareController
 /* GET users listing. */
 router.get("/",  middlewareController.verifyToken, userController.testFunction);
 
-//[POST] /user/register
-router.post("/register", userController.register);
-
-//[POST] /user/register
-router.post("/login", userController.login);
-
 //[delete] /user/{:id}
 router.delete("/:id", middlewareController.verifyToken, userController.deleteUser);
 

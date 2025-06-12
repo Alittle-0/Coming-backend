@@ -7,4 +7,10 @@ const middlewareController = require("../../app/controllers/MiddlewareController
 // GET main page
 router.get("/", pageController.mainPage);
 
+//[POST] /register
+router.post("/register", pageController.register);
+
+//[POST] /login
+router.post("/login", pageController.login);
+
 module.exports = router;
