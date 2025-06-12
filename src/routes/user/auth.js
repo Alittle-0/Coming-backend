@@ -6,13 +6,13 @@ const adminController = require("../../app/controllers/AdminControllers");
 const middlewareController = require("../../app/controllers/MiddlewareControllers");
 
 /* GET users listing. */
-router.get("/", userController.testFunction);
+router.get("/",  middlewareController.verifyToken, userController.testFunction);
 
 //[POST] /user/register
 router.post("/register", userController.register);
 
 //[POST] /user/register
-router.post("/login", middlewareController.verifyToken, userController.login);
+router.post("/login", userController.login);
 
 //[delete] /user/{:id}
 router.delete("/:id", middlewareController.verifyToken, userController.deleteUser);
