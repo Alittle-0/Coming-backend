@@ -13,7 +13,7 @@ router.delete("/:id", middlewareController.verifyToken, userController.deleteUse
 
 //---------------User management routes--------------//
 
-//[GET] /admin/getAllUsers
+//[GET] /admin
 router.get("/admin", middlewareController.verifyToken, adminController.getAllUsers);
 
 //[DELETE] /admin/deleteAllUsers
