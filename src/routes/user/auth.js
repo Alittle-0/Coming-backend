@@ -9,17 +9,17 @@ const middlewareController = require("../../app/controllers/MiddlewareController
 router.get("/",  middlewareController.verifyToken, userController.testFunction);
 
 //[delete] /user/{:id}
-router.delete("/:id", middlewareController.verifyToken, userController.deleteUser);
+router.delete("/:id", middlewareController.verifyAuthOrAdmin, userController.deleteUser);
 
 //---------------User management routes--------------//
 
-//[GET] /admin
-router.get("/admin", middlewareController.verifyToken, adminController.getAllUsers);
+//[GET] /admin/getAllUsers
+router.get("/getAllUsers", middlewareController.verifyAuthOrAdmin, adminController.getAllUsers);
 
 //[DELETE] /admin/deleteAllUsers
 router.delete(
   "/delete",
-  middlewareController.verifyToken,
+  middlewareController.verifyAuthOrAdmin,
   adminController.deleteAllUsers
 );
 
