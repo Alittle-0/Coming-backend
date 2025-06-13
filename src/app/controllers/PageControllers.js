@@ -1,8 +1,13 @@
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const tokenController = require("./TokenControllers");
 
 class PageController {
+  constructor() {
+    this.register = this.register.bind(this);
+    this.login = this.login.bind(this);
+  }
+
   mainPage(req, res) {
     res.send("Hello world!");
   }
@@ -47,22 +52,19 @@ class PageController {
       }
 
       //Return user data if successful
-      const accessToken = jwt.sign(
-        { id: user._id, username: user.username, role: user.role },
-        process.env.JWT_ACCESS_TOKEN,
-        { expiresIn: "1d" }
-      );
+      const accessToken = tokenController.generateAccessToken(user);
+      tokenController.generateRefreshToken(user, res);
       const { password: userPassword, role: userRole, ...other } = user._doc;
       res.status(200).json({
         ...other,
         accessToken: accessToken,
+        message: "Suscessfully",
       });
     } catch (error) {
       console.error("Error during login:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   }
-
 }
 
 module.exports = new PageController();
