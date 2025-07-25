@@ -30,8 +30,7 @@ Routes(app);
 app.get('/', (req, res) => {
   res.json({ 
     message: 'Coming Server is running!',
-    status: 'success',
-    timestamp: new Date().toISOString()
+    status: 'success'
   });
 });
 
