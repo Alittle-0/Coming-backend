@@ -26,6 +26,15 @@ app.use(cors({
 const Routes = require('./src/routes/navigator');
 Routes(app);
 
+// Add a test route to verify server is working
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Coming Server is running!',
+    status: 'success',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
