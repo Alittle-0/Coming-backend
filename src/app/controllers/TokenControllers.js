@@ -27,7 +27,7 @@ class TokenController {
     return jwt.sign(
       { id: user._id, username: user.username, role: user.role },
       process.env.JWT_ACCESS_TOKEN,
-      { expiresIn: "1h" }
+      { expiresIn: "1d" }
     );
   }
 

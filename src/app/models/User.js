@@ -28,6 +28,15 @@ const User = new schema({
         enum: ["user", "admin"],
         default: "user",
     },
+    displayName: {
+        type: String,
+        maxLength: 32,
+        default: null
+    },
+    servers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Server"
+    }],
 },{timestamps: true});
 
 module.exports = mongoose.model("User", User);
