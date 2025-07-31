@@ -8,7 +8,7 @@ function Routes(app){
   app.use('/user', userRouter);
   app.use('/admin', userRouter);
   app.use('/server', serverRouter);
-  app.use('/messages', messageRouter);
+  app.use('/api/messages', messageRouter);
 }
 
 module.exports = Routes;

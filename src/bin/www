@@ -3,23 +3,117 @@
 /**
  * Module dependencies.
  */
-require('dotenv').config()
-var app = require('../../app');
-var debug = require('debug')('coming:server');
-var http = require('http');
+require("dotenv").config();
+var app = require("../../app");
+var debug = require("debug")("coming:server");
+var http = require("http");
+const { Server } = require("socket.io");
+const messageController = require("../app/controllers/MessageController.js"); // Add this
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
-app.set('port', port);
+var port = normalizePort(process.env.PORT || "3000");
+app.set("port", port);
 
 /**
  * Create HTTP server.
  */
 
 var server = http.createServer(app);
+
+/**
+ * Initialize Socket.IO
+ */
+const io = new Server(server, {
+  cors: {
+    origin: [
+      "https://app-react-drab.vercel.app",
+      "http://localhost:3000",
+      "https://coming-server.vercel.app",
+      "https://coming-tau.vercel.app",
+    ],
+    credentials: true,
+    methods: ["GET", "POST"],
+  },
+});
+
+// Socket.IO connection handling
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  // Join a channel room
+  socket.on("join-channel", (channelId) => {
+    socket.join(channelId);
+    console.log(`User ${socket.id} joined channel: ${channelId}`);
+  });
+
+  // Leave a channel room
+  socket.on("leave-channel", (channelId) => {
+    socket.leave(channelId);
+    console.log(`User ${socket.id} left channel: ${channelId}`);
+  });
+
+  // Handle sending messages
+  socket.on("send-message", async (data) => {
+    try {
+      const { channelId, message, user } = data;
+
+      // Create message object
+      const messageData = {
+        id: Date.now(), // Temporary ID for real-time display
+        channelId,
+        message,
+        user,
+        timestamp: new Date(),
+      };
+
+      // Broadcast message to all users in the channel first (for real-time display)
+      io.to(channelId).emit("new-message", messageData);
+
+      // Save message to database
+      const savedMessage = await messageController.saveMessage(messageData);
+
+      // Optionally, emit the saved message with the actual database ID
+      io.to(channelId).emit("message-saved", {
+        tempId: messageData.id,
+        savedMessage: savedMessage,
+      });
+
+      console.log(`Message saved to database: ${savedMessage._id}`);
+    } catch (error) {
+      console.error("Error saving message:", error);
+
+      // Emit error to the sender
+      socket.emit("message-error", {
+        error: "Failed to save message",
+        originalMessage: data,
+      });
+    }
+  });
+
+  // Handle typing indicators
+  socket.on("typing", (data) => {
+    socket.to(data.channelId).emit("user-typing", {
+      userId: data.userId,
+      username: data.username,
+    });
+  });
+
+  socket.on("stop-typing", (data) => {
+    socket.to(data.channelId).emit("user-stop-typing", {
+      userId: data.userId,
+    });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
+// Make io available to routes
+app.set("socketio", io);
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -29,8 +123,8 @@ server.listen(port, () => {
   console.log(`Server: http://localhost:${port}`);
   console.log("Running successfully");
 });
-server.on('error', onError);
-server.on('listening', onListening);
+server.on("error", onError);
+server.on("listening", onListening);
 
 /**
  * Normalize a port into a number, string, or false.
@@ -57,22 +151,20 @@ function normalizePort(val) {
  */
 
 function onError(error) {
-  if (error.syscall !== 'listen') {
+  if (error.syscall !== "listen") {
     throw error;
   }
 
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
+  var bind = typeof port === "string" ? "Pipe " + port : "Port " + port;
 
   // handle specific listen errors with friendly messages
   switch (error.code) {
-    case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
+    case "EACCES":
+      console.error(bind + " requires elevated privileges");
       process.exit(1);
       break;
-    case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
+    case "EADDRINUSE":
+      console.error(bind + " is already in use");
       process.exit(1);
       break;
     default:
@@ -86,8 +178,6 @@ function onError(error) {
 
 function onListening() {
   var addr = server.address();
-  var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
-  debug('Listening on ' + bind);
+  var bind = typeof addr === "string" ? "pipe " + addr : "port " + addr.port;
+  debug("Listening on " + bind);
 }
