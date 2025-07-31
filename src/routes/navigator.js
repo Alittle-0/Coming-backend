@@ -1,6 +1,6 @@
-const userRouter = require('./user/auth');
-const pageRouter = require('./pages/page');
-const serverRouter = require('./server/server');
+const userRouter = require('./auth');
+const pageRouter = require('./page');
+const serverRouter = require('./server');
 
 function Routes(app){
   app.use('/', pageRouter);
