@@ -3,7 +3,6 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const db = require("./src/config/db/connect");
-const { database: firebaseDB } = require("./src/config/db/firestore");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
@@ -11,7 +10,6 @@ const app = express();
 
 //Configure environment variables
 db();
-app.locals.firebaseDB = firebaseDB;
 dotenv.config();
 
 // Middlewares

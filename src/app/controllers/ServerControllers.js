@@ -199,6 +199,155 @@ class ServerController {
       });
     }
   }
+
+  // [POST] /server/:serverId/members /* add member to server (owner only) */
+  async addMemberToServer(req, res) {
+    try {
+      const { serverId } = req.params;
+      const { userId, nickname } = req.body;
+      const requestingUserId = req.user.id;
+
+      // Validation
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+
+      // Check if user exists
+      const userToAdd = await User.findById(userId);
+      if (!userToAdd) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const server = await Server.findById(serverId);
+      if (!server) {
+        return res.status(404).json({ message: "Server not found" });
+      }
+
+      // Check if user is already a member
+      if (server.isMember(userId)) {
+        return res.status(400).json({ message: "User is already a member of this server" });
+      }
+
+      // Add user to server members
+      server.members.push({
+        userId: userId,
+        joinedAt: new Date(),
+        nickname: nickname || null
+      });
+
+      // Add server to user's servers array
+      userToAdd.servers.push(serverId);
+
+      // Save both documents
+      await Promise.all([
+        server.save(),
+        userToAdd.save()
+      ]);
+
+      res.status(200).json({ 
+        message: "Member added successfully",
+        member: {
+          userId: userId,
+          username: userToAdd.username,
+          nickname: nickname || null,
+          joinedAt: new Date()
+        }
+      });
+    } catch (error) {
+      console.error("Error adding member to server:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
+  // [DELETE] /server/:serverId/members/:userId /* remove member from server (owner only) */
+  async removeMemberFromServer(req, res) {
+    try {
+      const { serverId, userId } = req.params;
+      const requestingUserId = req.user.id;
+
+      const server = await Server.findById(serverId);
+      if (!server) {
+        return res.status(404).json({ message: "Server not found" });
+      }
+
+      // Prevent owner from removing themselves
+      if (server.isOwner(userId)) {
+        return res.status(400).json({ message: "Server owner cannot be removed. Transfer ownership first." });
+      }
+
+      // Check if user is a member
+      if (!server.isMember(userId)) {
+        return res.status(400).json({ message: "User is not a member of this server" });
+      }
+
+      // Remove user from server members
+      server.members = server.members.filter(member => 
+        member.userId.toString() !== userId.toString()
+      );
+
+      // Remove server from user's servers array
+      await User.findByIdAndUpdate(userId, {
+        $pull: { servers: serverId }
+      });
+
+      await server.save();
+
+      res.status(200).json({ message: "Member removed successfully" });
+    } catch (error) {
+      console.error("Error removing member from server:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
+  // [POST] /server/join/:inviteCode /* join server using invite code */
+  async joinServerByInvite(req, res) {
+    try {
+      const { inviteCode } = req.params;
+      const userId = req.user.id;
+
+      if (!inviteCode) {
+        return res.status(400).json({ message: "Invite code is required" });
+      }
+
+      // Find server by invite code
+      const server = await Server.findOne({ inviteCode: inviteCode, isActive: true });
+      if (!server) {
+        return res.status(404).json({ message: "Invalid or expired invite code" });
+      }
+
+      // Check if user is already a member
+      if (server.isMember(userId)) {
+        return res.status(400).json({ message: "You are already a member of this server" });
+      }
+
+      // Add user to server members
+      server.members.push({
+        userId: userId,
+        joinedAt: new Date(),
+      });
+
+      // Add server to user's servers array
+      await User.findByIdAndUpdate(userId, {
+        $addToSet: { servers: server._id }
+      });
+
+      await server.save();
+
+      // Return server info with populated channels
+      const populatedServer = await Server.findById(server._id)
+        .populate("channels")
+        .lean();
+
+      res.status(200).json({ 
+        message: "Successfully joined server",
+        server: populatedServer
+      });
+    } catch (error) {
+      console.error("Error joining server:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
 }
 
 module.exports = new ServerController();
