@@ -25,7 +25,7 @@ app.use(
       "https://app-react-drab.vercel.app",
       "http://localhost:3000",
       "https://coming-server.vercel.app",
-      "https://coming-tau.vercel.app/",
+      "https://coming-tau.vercel.app",
     ], // Your React app URL
     credentials: true,
   })
