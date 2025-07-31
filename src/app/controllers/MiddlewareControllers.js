@@ -48,7 +48,7 @@ class MiddlewareController {
     try {
       const { serverId, id } = req.params;
       const userId = req.user.id;
-      const serverIdToCheck = serverId;
+      const serverIdToCheck = serverId || id;
 
       if (!serverIdToCheck) {
         return res.status(400).json({ message: "Server ID is required" });

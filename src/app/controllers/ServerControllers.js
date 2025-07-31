@@ -11,14 +11,27 @@ class ServerController {
       const servers = await Server.find({
         $or: [{ ownerId: userId }, { "members.userId": userId }],
       })
-        .populate("ownerId", "username displayName avatar")
-        .populate("members.userId", "username displayName avatar")
-        .populate("channels")
-        .select("-inviteCode");
-
+        .select("_id name")
+        .lean();
+        
       res.status(200).json(servers);
     } catch (error) {
       console.error("Error fetching user servers:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
+  // [GET] /server/:id /* get server by id */
+  async getServerById(req, res) {
+    try {
+      const { id } = req.params;
+      const userId = req.user.id;
+
+      const server = await Server.findById(id).populate("channels");
+
+      res.status(200).json(server);
+    } catch (error) {
+      console.error("Error fetching server:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   }
@@ -30,7 +43,7 @@ class ServerController {
       const userId = req.user.id;
 
       // Validation
-      if (!name || name.trim().length === 3) {
+      if (!name || name.trim().length < 3) {
         return res
           .status(400)
           .json({ message: "Server name  must be at least 3 characters long" });
@@ -75,20 +88,20 @@ class ServerController {
           type: "text",
           serverId: savedServer._id,
           description: "General discussion channel",
-          isActive: true
+          isActive: true,
         },
         {
           name: "General Voice",
           type: "voice",
           serverId: savedServer._id,
           description: "General voice channel",
-          isActive: true
-        }
+          isActive: true,
+        },
       ];
 
       // Create channels and get their IDs
       const createdChannels = await Channel.insertMany(defaultChannels);
-      const channelIds = createdChannels.map(channel => channel._id);
+      const channelIds = createdChannels.map((channel) => channel._id);
 
       // Add channels to server
       savedServer.channels = channelIds;

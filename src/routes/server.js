@@ -8,28 +8,33 @@ const ChannelController = require("../app/controllers/ChannelController");
 // Manage servers
 router.get(
   "/",
-  middlewareController.verifyToken, 
+  middlewareController.verifyToken,
   serverController.getUserServers
+);
+router.get(
+  "/:id",
+  middlewareController.verifyToken, middlewareController.ServerUserRelationship,
+  serverController.getServerById
 );
 router.post(
   "/",
-  middlewareController.verifyToken,
+  middlewareController.verifyToken, middlewareController.ServerUserRelationship,
   serverController.createServer
 );
 router.put(
   "/:id",
-  middlewareController.verifyToken,
+  middlewareController.verifyToken, middlewareController.ServerUserRelationship,
   serverController.updateServer
 );
 router.delete(
   "/:id",
-  middlewareController.verifyToken,
+  middlewareController.verifyToken, middlewareController.checkServerOwner,
   serverController.deleteServer
 );
 
 // Manage channels
 router.post(
-  "/:serverId/",
+  "/:serverId/create",
   middlewareController.verifyToken, middlewareController.checkServerOwner,
   ChannelController.createChannel
 );

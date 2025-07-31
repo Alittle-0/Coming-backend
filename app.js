@@ -3,14 +3,16 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const db = require("./src/config/db/connect");
+const { database: firebaseDB } = require("./src/config/db/firestore");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
+const app = express();
+
 //Configure environment variables
 db();
+app.locals.firebaseDB = firebaseDB;
 dotenv.config();
-
-const app = express();
 
 // Middlewares
 app.use(logger("dev"));
@@ -23,6 +25,7 @@ app.use(
       "https://app-react-drab.vercel.app",
       "http://localhost:3000",
       "https://coming-server.vercel.app",
+      "https://coming-tau.vercel.app/",
     ], // Your React app URL
     credentials: true,
   })
