@@ -156,11 +156,6 @@ router.get("/health", async (req, res) => {
  *                 minLength: 6
  *                 example: "securepassword123"
  *                 description: "Password must be at least 6 characters"
- *               displayName:
- *                 type: string
- *                 maxLength: 32
- *                 example: "John Doe"
- *                 description: "Optional display name"
  *     responses:
  *       200:
  *         description: User registered successfully
@@ -168,8 +163,6 @@ router.get("/health", async (req, res) => {
  *           application/json:
  *             schema:
  *               allOf:
- *                 - $ref: '#/components/schemas/User'
- *                 - type: object
  *                   properties:
  *                     message:
  *                       type: string

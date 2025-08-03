@@ -10,22 +10,26 @@ class TokenController {
   }
 
   setRefreshToken(refreshToken, check, res) {
-    check ? (
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: false, // Set to true if using HTTPS
-        sameSite: "strict",
-      }),
-      refreshTokens.add(refreshToken)
-    ) : (
-      res.clearCookie("refreshToken"),
-      refreshTokens.delete(refreshToken)
-    )
+    check
+      ? (res.cookie("refreshToken", refreshToken, {
+          httpOnly: true,
+          secure: false, // Set to true if using HTTPS
+          sameSite: "strict",
+        }),
+        refreshTokens.add(refreshToken))
+      : (res.clearCookie("refreshToken"), refreshTokens.delete(refreshToken));
   }
 
   generateAccessToken(user) {
+
     return jwt.sign(
-      { id: user._id, username: user.username, role: user.role },
+      {
+        id: user._id || user.id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+        role: user.role,
+      },
       process.env.JWT_ACCESS_TOKEN,
       { expiresIn: "1d" }
     );
@@ -34,8 +38,10 @@ class TokenController {
   generateRefreshToken(user, res) {
     const refreshToken = jwt.sign(
       {
-        id: user._id,
+        id: user._id|| user.id,
         username: user.username,
+        email: user.email,
+        avatar: user.avatar,
         role: user.role,
         createdAt: user.createdAt,
       },
@@ -56,32 +62,26 @@ class TokenController {
       }
 
       // Verify the refresh token
-      jwt.verify(
-        refreshToken,
-        process.env.JWT_REFRESH_TOKEN,
-        (error, user) => {
-          if (error) {
-            console.log(error);
-            this.setRefreshToken(refreshToken, false, res);
-            return res.status(403).json({ message: "Invalid refresh token" });
-          }
-
-          // Remove the old refresh token
+      jwt.verify(refreshToken, process.env.JWT_REFRESH_TOKEN, (error, user) => {
+        if (error) {
+          console.log(error);
           this.setRefreshToken(refreshToken, false, res);
-
-
-          // Generate new access token
-          const newAccessToken = this.generateAccessToken(user);
-          this.generateRefreshToken(user, res);
-          res.status(200).json({ accessToken: newAccessToken });
+          return res.status(403).json({ message: "Invalid refresh token" });
         }
-      );
+
+        // Remove the old refresh token
+        this.setRefreshToken(refreshToken, false, res);
+
+        // Generate new access token
+        const newAccessToken = this.generateAccessToken(user);
+        this.generateRefreshToken(user, res);
+        res.status(200).json({ accessToken: newAccessToken });
+      });
     } catch (error) {
       console.error("Error during refresh token request:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   }
-
 }
 
 module.exports = new TokenController();

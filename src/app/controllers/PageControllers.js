@@ -15,6 +15,23 @@ class PageController {
   async register(req, res) {
     try {
       const { username, password, email } = req.body;
+
+      if (!username || !password || !email) {
+        return res.status(400).json({ 
+          message: "Username, password, and email are required" 
+        });
+      }
+      
+      const existingUser = await User.findOne({
+        $or: [{ username: username }, { email: email }]
+      });
+
+      if (existingUser) {
+        return res.status(409).json({ 
+          message: "Username or email already exists" 
+        });
+      }
+
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -26,8 +43,10 @@ class PageController {
       });
 
       //Save user to database
-      const user = await newUser.save();
-      res.status(200).json(user);
+      await newUser.save();
+      const message = "User registered successfully";
+
+      res.status(200).json(message);
     } catch (error) {
       console.error("Error during registration:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -51,12 +70,21 @@ class PageController {
         return res.status(404).json({ message: "Invalid password" });
       }
 
+      const safeData = {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+        role: user.role,
+      }
+
+      //Generate access and refresh tokens
+      const accessToken = tokenController.generateAccessToken(safeData);
+      tokenController.generateRefreshToken(safeData, res);
+      
       //Return user data if successful
-      const accessToken = tokenController.generateAccessToken(user);
-      tokenController.generateRefreshToken(user, res);
-      const { password: userPassword, role: userRole, ...other } = user._doc;
       res.status(200).json({
-        ...other,
+        user: safeData,
         accessToken: accessToken,
         message: "Suscessfully",
       });
