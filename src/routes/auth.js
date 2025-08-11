@@ -190,4 +190,49 @@ router.delete(
   adminController.deleteAllUsers
 );
 
+/**
+ * @swagger
+ * /user/profile:
+ *   put:
+ *     summary: Update user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 minLength: 6
+ *                 maxLength: 20
+ *                 description: "New username"
+ *               displayName:
+ *                 type: string
+ *                 maxLength: 32
+ *                 description: "Display name"
+ *               avatar:
+ *                 type: string
+ *                 description: "Avatar URL"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         description: Not authenticated
+ *       409:
+ *         description: Username already taken
+ *       500:
+ *         description: Internal server error
+ */
+router.put("/profile", middlewareController.verifyToken, userController.updateProfile);
+
 module.exports = router;

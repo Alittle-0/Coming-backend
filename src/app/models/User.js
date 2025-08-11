@@ -21,7 +21,7 @@ const User = new schema({
     },
     avatar: {
         type: String,
-        default: null,
+        default: "/uploads/user-avatars/default-avatar.png",
     },
     role: {
         type: String,

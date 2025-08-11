@@ -1,6 +1,7 @@
 const Server = require("../models/Server");
 const User = require("../models/User");
 const Channel = require("../models/Channel");
+const FileUtils = require("../utils/fileUtils");
 
 class ServerController {
   // [GET] /server/  /* get all server which user is member */
@@ -11,9 +12,9 @@ class ServerController {
       const servers = await Server.find({
         $or: [{ ownerId: userId }, { "members.userId": userId }],
       })
-        .select("_id name")
+        .select("_id name serverAvatar")
         .lean();
-        
+
       res.status(200).json(servers);
     } catch (error) {
       console.error("Error fetching user servers:", error);
@@ -27,7 +28,10 @@ class ServerController {
       const { id } = req.params;
       const userId = req.user.id;
 
-      const server = await Server.findById(id).populate("channels");
+      const server = await Server.findById(id)
+        .populate("channels")
+        .populate("ownerId", "username displayName avatar")
+        .populate("members.userId", "username displayName avatar");
 
       res.status(200).json(server);
     } catch (error) {
@@ -39,7 +43,7 @@ class ServerController {
   // [POST] /server/ /* create new server which user is the owner */
   async createServer(req, res) {
     try {
-      const { name, description } = req.body;
+      const { name, description, serverAvatar } = req.body;
       const userId = req.user.id;
 
       // Validation
@@ -67,6 +71,7 @@ class ServerController {
           },
         ],
         inviteCode: null,
+        serverAvatar: serverAvatar,
         isActive: true,
       });
 
@@ -89,14 +94,14 @@ class ServerController {
           serverId: savedServer._id,
           description: "General discussion channel",
           isActive: true,
-        },
+        } /*,
         {
           name: "General Voice",
           type: "voice",
           serverId: savedServer._id,
           description: "General voice channel",
           isActive: true,
-        },
+        },*/,
       ];
 
       // Create channels and get their IDs
@@ -128,7 +133,7 @@ class ServerController {
   async updateServer(req, res) {
     try {
       const { id } = req.params;
-      const { name, description } = req.body;
+      const { name, description, ownerId, serverAvatar } = req.body;
       const userId = req.user.id;
 
       const server = await Server.findById(id);
@@ -146,14 +151,54 @@ class ServerController {
         });
       }
 
+      // Validate new owner if provided
+      if (ownerId && ownerId !== server.ownerId.toString()) {
+        const newOwner = await User.findById(ownerId);
+        if (!newOwner) {
+          return res.status(404).json({
+            message: "New owner user not found",
+          });
+        }
+
+        // Check if new owner is a member of the server
+        if (!server.isMember(ownerId)) {
+          return res.status(400).json({
+            message: "New owner must be a member of the server",
+          });
+        }
+
+        server.ownerId = ownerId;
+      }
+
+      // Update server avatar
+      if (
+        serverAvatar &&
+        server.serverAvatar &&
+        serverAvatar !== server.serverAvatar
+      ) {
+        FileUtils.deleteServerAvatar(server.serverAvatar);
+      }
+
       // Update fields
-      if (name) server.name = name.trim();
+      if (name && name.trim().length >= 3) server.name = name.trim();
+      else if (name) {
+        return res.status(400).json({
+          message: "Server name must be at least 3 characters long",
+        });
+      }
       if (description !== undefined) server.description = description;
+      if (serverAvatar !== undefined) server.serverAvatar = serverAvatar;
 
       await server.save();
 
+      const updatedServer = await Server.findById(id)
+        .populate("ownerId", "username displayName avatar")
+        .populate("channels")
+        .populate("members.userId", "username displayName avatar");
+
       res.status(200).json({
         message: "Server updated successfully",
+        server: updatedServer,
       });
     } catch (error) {
       console.error("Error updating server:", error);
@@ -184,9 +229,16 @@ class ServerController {
         });
       }
 
+      // Delete server avatar
+      FileUtils.deleteServerAvatar(server.serverAvatar);
+
+      // Delete all channels associated with this server
+      await Channel.deleteMany({ serverId: id });
+
       // Remove server from all members' servers array
       await User.updateMany({ servers: id }, { $pull: { servers: id } });
 
+      // Delete the server
       await Server.findByIdAndDelete(id);
 
       res.status(200).json({
@@ -225,33 +277,32 @@ class ServerController {
 
       // Check if user is already a member
       if (server.isMember(userId)) {
-        return res.status(400).json({ message: "User is already a member of this server" });
+        return res
+          .status(400)
+          .json({ message: "User is already a member of this server" });
       }
 
       // Add user to server members
       server.members.push({
         userId: userId,
         joinedAt: new Date(),
-        nickname: nickname || null
+        nickname: nickname || null,
       });
 
       // Add server to user's servers array
       userToAdd.servers.push(serverId);
 
       // Save both documents
-      await Promise.all([
-        server.save(),
-        userToAdd.save()
-      ]);
+      await Promise.all([server.save(), userToAdd.save()]);
 
-      res.status(200).json({ 
+      res.status(200).json({
         message: "Member added successfully",
         member: {
           userId: userId,
           username: userToAdd.username,
           nickname: nickname || null,
-          joinedAt: new Date()
-        }
+          joinedAt: new Date(),
+        },
       });
     } catch (error) {
       console.error("Error adding member to server:", error);
@@ -272,22 +323,26 @@ class ServerController {
 
       // Prevent owner from removing themselves
       if (server.isOwner(userId)) {
-        return res.status(400).json({ message: "Server owner cannot be removed. Transfer ownership first." });
+        return res.status(400).json({
+          message: "Server owner cannot be removed. Transfer ownership first.",
+        });
       }
 
       // Check if user is a member
       if (!server.isMember(userId)) {
-        return res.status(400).json({ message: "User is not a member of this server" });
+        return res
+          .status(400)
+          .json({ message: "User is not a member of this server" });
       }
 
       // Remove user from server members
-      server.members = server.members.filter(member => 
-        member.userId.toString() !== userId.toString()
+      server.members = server.members.filter(
+        (member) => member.userId.toString() !== userId.toString()
       );
 
       // Remove server from user's servers array
       await User.findByIdAndUpdate(userId, {
-        $pull: { servers: serverId }
+        $pull: { servers: serverId },
       });
 
       await server.save();
@@ -310,14 +365,21 @@ class ServerController {
       }
 
       // Find server by invite code
-      const server = await Server.findOne({ inviteCode: inviteCode, isActive: true });
+      const server = await Server.findOne({
+        inviteCode: inviteCode,
+        isActive: true,
+      });
       if (!server) {
-        return res.status(404).json({ message: "Invalid or expired invite code" });
+        return res
+          .status(404)
+          .json({ message: "Invalid or expired invite code" });
       }
 
       // Check if user is already a member
       if (server.isMember(userId)) {
-        return res.status(400).json({ message: "You are already a member of this server" });
+        return res
+          .status(400)
+          .json({ message: "You are already a member of this server" });
       }
 
       // Add user to server members
@@ -328,7 +390,7 @@ class ServerController {
 
       // Add server to user's servers array
       await User.findByIdAndUpdate(userId, {
-        $addToSet: { servers: server._id }
+        $addToSet: { servers: server._id },
       });
 
       await server.save();
@@ -338,16 +400,15 @@ class ServerController {
         .populate("channels")
         .lean();
 
-      res.status(200).json({ 
+      res.status(200).json({
         message: "Successfully joined server",
-        server: populatedServer
+        server: populatedServer,
       });
     } catch (error) {
       console.error("Error joining server:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   }
-
 }
 
 module.exports = new ServerController();

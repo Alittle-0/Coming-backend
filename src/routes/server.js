@@ -125,7 +125,6 @@ router.get(
 router.post(
   "/",
   middlewareController.verifyToken,
-  middlewareController.ServerUserRelationship,
   serverController.createServer
 );
 
@@ -133,7 +132,7 @@ router.post(
  * @swagger
  * /server/{id}:
  *   put:
- *     summary: Update server
+ *     summary: Update server (owner only)
  *     tags: [Servers]
  *     security:
  *       - bearerAuth: []
@@ -145,6 +144,7 @@ router.post(
  *           type: string
  *         description: Server ID
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
@@ -154,9 +154,17 @@ router.post(
  *                 type: string
  *                 minLength: 3
  *                 maxLength: 100
+ *                 description: Server name
  *               description:
  *                 type: string
  *                 maxLength: 1024
+ *                 description: Server description
+ *               serverAvatar:
+ *                 type: string
+ *                 description: Path to server avatar image
+ *               ownerId:
+ *                 type: string
+ *                 description: New owner user ID (for ownership transfer)
  *     responses:
  *       200:
  *         description: Server updated successfully
@@ -164,10 +172,12 @@ router.post(
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Server'
+ *       400:
+ *         description: Invalid input
  *       401:
  *         description: Not authenticated
  *       403:
- *         description: Only server owner can update server
+ *         description: Only server owner can update
  *       404:
  *         description: Server not found
  *       500:

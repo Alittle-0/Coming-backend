@@ -76,6 +76,7 @@ class PageController {
         email: user.email,
         avatar: user.avatar,
         role: user.role,
+        displayName: user.displayName,
       }
 
       //Generate access and refresh tokens

@@ -29,6 +29,7 @@ class TokenController {
         email: user.email,
         avatar: user.avatar,
         role: user.role,
+        displayName: user.displayName,
       },
       process.env.JWT_ACCESS_TOKEN,
       { expiresIn: "1d" }
@@ -44,6 +45,7 @@ class TokenController {
         avatar: user.avatar,
         role: user.role,
         createdAt: user.createdAt,
+        displayName: user.displayName,
       },
       process.env.JWT_REFRESH_TOKEN,
       { expiresIn: "30d" }

@@ -5,6 +5,7 @@ const logger = require("morgan");
 const db = require("./src/config/db/connect");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const path = require("path");
 const { swaggerUi, specs } = require("./src/config/swagger");
 
 const app = express();
@@ -18,6 +19,10 @@ app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// Serve static files (uploaded images)
+app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
+
 app.use(
   cors({
     origin: [

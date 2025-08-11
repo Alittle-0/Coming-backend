@@ -111,6 +111,52 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
+
+  //Handle remove message
+  socket.on("delete-message", async (data) => {
+    try {
+      const { messageId, userId, channelId } = data;
+
+      // First verify the user has permission to delete (similar to your controller logic)
+      const Message = require("../app/models/Message");
+      const message = await Message.findById(messageId);
+
+      if (!message) {
+        socket.emit("delete-error", {
+          error: "Message not found",
+          messageId,
+        });
+        return;
+      }
+
+      // Check if user owns the message (or is admin)
+      if (message.user.id !== userId) {
+        socket.emit("delete-error", {
+          error: "Not authorized to delete this message",
+          messageId,
+        });
+        return;
+      }
+
+      // Delete from database
+      await Message.findByIdAndDelete(messageId);
+
+      // Broadcast to all users in the channel that the message was deleted
+      io.to(channelId).emit("message-deleted", {
+        messageId,
+        channelId,
+        deletedBy: userId,
+      });
+
+      console.log(`Message ${messageId} deleted by user ${userId}`);
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      socket.emit("delete-error", {
+        error: "Failed to delete message",
+        messageId: data.messageId,
+      });
+    }
+  });
 });
 
 // Make io available to routes

@@ -44,6 +44,10 @@ const Server = new schema({
         unique: true,
         sparse: true
     },
+    serverAvatar: {
+        type: String,
+        require: true,
+    },
     isActive: {
         type: Boolean,
         default: true
