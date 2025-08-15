@@ -93,6 +93,117 @@ router.get("/channel/:channelId", messageController.getChannelMessages);
 /**
  * @swagger
  * /api/messages/{messageId}:
+ *   put:
+ *     summary: Edit a message
+ *     tags: [Messages]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Message ID
+ *         example: "60f1b2a3c4d5e6f7a8b9c0d1"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - newMessage
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: ID of user attempting to edit message
+ *                 example: "60f1b2a3c4d5e6f7a8b9c0d1"
+ *               newMessage:
+ *                 type: string
+ *                 description: New message content
+ *                 example: "This is the edited message"
+ *                 minLength: 1
+ *                 maxLength: 2000
+ *     responses:
+ *       200:
+ *         description: Message edited successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Message updated successfully"
+ *                 data:
+ *                   $ref: '#/components/schemas/Message'
+ *       400:
+ *         description: Missing required fields or invalid input
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Message content is required"
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized to edit this message
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Not authorized to edit this message"
+ *       404:
+ *         description: Message not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Message not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Error editing message"
+ *                 error:
+ *                   type: string
+ */
+router.put("/:messageId", messageController.editMessage);
+
+/**
+ * @swagger
+ * /api/messages/{messageId}:
  *   delete:
  *     summary: Delete a message
  *     tags: [Messages]

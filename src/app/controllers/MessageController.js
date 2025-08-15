@@ -91,6 +91,71 @@ const messageController = {
       });
     }
   },
+
+    // Edit a message
+  editMessage: async (req, res) => {
+    try {
+      const { messageId } = req.params;
+      const { userId, newMessage } = req.body;
+
+      // Validate input
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: "User ID is required",
+        });
+      }
+
+      if (!newMessage || newMessage.trim() === "") {
+        return res.status(400).json({
+          success: false,
+          message: "Message content is required",
+        });
+      }
+
+      const message = await Message.findById(messageId);
+
+      if (!message) {
+        return res.status(404).json({
+          success: false,
+          message: "Message not found",
+        });
+      }
+
+      // Check if user owns the message
+      if (message.user.id !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: "Not authorized to edit this message",
+        });
+      }
+
+      // Update the message
+      const updatedMessage = await Message.findByIdAndUpdate(
+        messageId,
+        {
+          message: newMessage.trim(),
+          isEdited: true,
+          editedAt: new Date(),
+        },
+        { new: true }
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Message updated successfully",
+        data: updatedMessage,
+      });
+    } catch (error) {
+      console.error("Error editing message:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error editing message",
+        error: error.message,
+      });
+    }
+  },
+
 };
 
 module.exports = messageController;
