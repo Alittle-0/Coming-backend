@@ -28,13 +28,13 @@ var server = http.createServer(app);
  */
 const io = new Server(server, {
   cors: {
-    origin: [
+    origin: /*[
       "https://app-react-drab.vercel.app",
       "http://localhost:3000",
       "https://coming-server.vercel.app",
       "https://coming-tau.vercel.app",
       "http://localhost:5173",
-    ],
+    ]*/'*',
     credentials: true,
     methods: ["GET", "POST"],
   },

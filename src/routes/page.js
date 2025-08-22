@@ -261,4 +261,69 @@ router.post("/register", pageController.register);
  */
 router.post("/login", pageController.login);
 
+/**
+ * @swagger
+ * /google-login:
+ *   post:
+ *     summary: Login or register user via Google OAuth
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - googleToken
+ *             properties:
+ *               googleToken:
+ *                 type: string
+ *                 description: Google ID token from client
+ *                 example: "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..."
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 accessToken:
+ *                   type: string
+ *                   description: JWT access token
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 message:
+ *                   type: string
+ *                   example: "Successfully"
+ *       400:
+ *         description: No Google token provided
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No Google token provided"
+ *       403:
+ *         description: User already exists or logic error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User is already created before"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post("/google-login", pageController.googleLogin);
+
 module.exports = router;

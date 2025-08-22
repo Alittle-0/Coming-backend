@@ -16,12 +16,15 @@ const User = new schema({
     },
     password: {
         type: String,
-        required: true,
         minLength: 6,
+    },
+    type: {
+        type: String,
+        default: "website",
     },
     avatar: {
         type: String,
-        default: "/uploads/user-avatars/default-avatar.png",
+        default: `${process.env.SERVER_URL}/uploads/user-avatars/default-avatar.png`,
     },
     role: {
         type: String,
