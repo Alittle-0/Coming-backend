@@ -20,7 +20,7 @@ class UploadController {
           message: 'No file uploaded' 
         });
       }
-      const avatarPath = `/uploads/server-avatars/${req.file.filename}`;
+      const avatarPath = `${process.env.SERVER_URL}/uploads/server-avatars/${req.file.filename}`;
       
       res.status(200).json({
         message: 'Server avatar uploaded successfully',
@@ -42,7 +42,7 @@ class UploadController {
         });
       }
 
-      const avatarPath = `/uploads/user-avatars/${req.file.filename}`;
+      const avatarPath = `${process.env.SERVER_URL}/uploads/user-avatars/${req.file.filename}`;
       
       res.status(200).json({
         message: 'User avatar uploaded successfully',
