@@ -23,18 +23,12 @@ app.use(cookieParser());
 // Serve static files (uploaded images)
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
-const allowedOrigins = [
-  "https://app-react-drab.vercel.app",
-  "http://localhost:3000",
-  "https://coming-server.vercel.app",
-  "https://coming-tau.vercel.app",
-  "http://localhost:5173",
-];
+const allowedOrigins = process.env.ORIGIN?.split(",");
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
       return callback(new Error("Not allowed by CORS"));
