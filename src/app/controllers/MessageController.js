@@ -54,80 +54,58 @@ const messageController = {
   },
 
   // Delete a message
-  deleteMessage: async (req, res) => {
+  deleteMessage: async ({ messageId, user }) => {
     try {
-      const { messageId } = req.params;
-      const { userId } = req.body; // Assuming you have user authentication
+      const userId = user.id;
+      console.log(user.id);
 
       const message = await Message.findById(messageId);
 
       if (!message) {
-        return res.status(404).json({
-          success: false,
-          message: "Message not found",
-        });
+        return { status: 404, success: false, message: "Message not found" };
       }
 
       // Check if user owns the message
       if (message.user.id !== userId) {
-        return res.status(403).json({
+        return {
+          status: 403,
           success: false,
           message: "Not authorized to delete this message",
-        });
+        };
       }
 
       await Message.findByIdAndDelete(messageId);
 
-      res.status(200).json({
-        success: true,
-        message: "Message deleted successfully",
-      });
+      return { status: 200, success: true, message: "Message deleted successfully" };
     } catch (error) {
       console.error("Error deleting message:", error);
-      res.status(500).json({
-        success: false,
-        message: "Error deleting message",
-        error: error.message,
-      });
+      return { status: 500, success: false, message: "Error deleting message", error: error.message };
     }
   },
 
-    // Edit a message
-  editMessage: async (req, res) => {
+  // Edit a message
+  editMessage: async ({ messageId, newMessage, user }) => {
     try {
-      const { messageId } = req.params;
-      const { userId, newMessage } = req.body;
+      const userId = user.id;
 
       // Validate input
       if (!userId) {
-        return res.status(400).json({
-          success: false,
-          message: "User ID is required",
-        });
+        return { status: 400, success: false, message: "User ID is required" };
       }
 
       if (!newMessage || newMessage.trim() === "") {
-        return res.status(400).json({
-          success: false,
-          message: "Message content is required",
-        });
+        return { status: 400, success: false, message: "Message content is required" };
       }
 
       const message = await Message.findById(messageId);
 
       if (!message) {
-        return res.status(404).json({
-          success: false,
-          message: "Message not found",
-        });
+        return { status: 404, success: false, message: "Message not found" };
       }
 
       // Check if user owns the message
       if (message.user.id !== userId) {
-        return res.status(403).json({
-          success: false,
-          message: "Not authorized to edit this message",
-        });
+        return { status: 403, success: false, message: "Not authorized to edit this message" };
       }
 
       // Update the message
@@ -141,21 +119,12 @@ const messageController = {
         { new: true }
       );
 
-      res.status(200).json({
-        success: true,
-        message: "Message updated successfully",
-        data: updatedMessage,
-      });
+      return { status: 200, success: true, message: "Message updated successfully", updatedMessage };
     } catch (error) {
       console.error("Error editing message:", error);
-      res.status(500).json({
-        success: false,
-        message: "Error editing message",
-        error: error.message,
-      });
+      return { status: 500, success: false, message: "Error editing message", error: error.message };
     }
   },
-
 };
 
 module.exports = messageController;

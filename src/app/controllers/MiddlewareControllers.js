@@ -100,6 +100,21 @@ class MiddlewareController {
       }
     });
   }
+
+  //Verify token from socket.io
+  verifySocketToken(authHeader) {
+    if (!authHeader) throw new Error("No token provided");
+    try {
+      const token = authHeader?.split(" ")[1];
+      const decoded = jwt.verify(token, process.env.JWT_ACCESS_TOKEN);
+      return decoded;
+    } catch (error) {
+      if (error.name === "TokenExpiredError") {
+        throw new Error("Token expired");
+      }
+      throw error;
+    }
+  }
 }
 
 module.exports = new MiddlewareController();

@@ -8,7 +8,9 @@ var app = require("../../app");
 var debug = require("debug")("coming:server");
 var http = require("http");
 const { Server } = require("socket.io");
-const messageController = require("../app/controllers/MessageController.js"); // Add this
+const messageController = require("../app/controllers/MessageController.js");
+const MiddlewareController = require("../app/controllers/MiddlewareControllers.js");
+const jwt = require("jsonwebtoken");
 
 /**
  * Get port from environment and store in Express.
@@ -26,15 +28,16 @@ var server = http.createServer(app);
 /**
  * Initialize Socket.IO
  */
+const allowedOrigins = process.env.ORIGIN?.split(",");
+
 const io = new Server(server, {
   cors: {
-    origin: /*[
-      "https://app-react-drab.vercel.app",
-      "http://localhost:3000",
-      "https://coming-server.vercel.app",
-      "https://coming-tau.vercel.app",
-      "http://localhost:5173",
-    ]*/'*',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
     methods: ["GET", "POST"],
   },
@@ -42,7 +45,27 @@ const io = new Server(server, {
 
 // Socket.IO connection handling
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  //Token
+  const authHeader = socket.handshake.auth.Authorization;
+  if (!authHeader) {
+    console.log("No token provided");
+    socket.disconnect(true);
+    return;
+  }
+
+  // Verify token
+  try {
+    const user = MiddlewareController.verifySocketToken(authHeader);
+    socket.user = user;
+  } catch (err) {
+    console.log(err);
+    console.log("disconnect.....");
+    if (err.message === "Token expired") {
+      socket.emit("auth-error", { message: "Token expired" });
+    }
+    socket.disconnect(true);
+    return;
+  }
 
   // Join a channel room
   socket.on("join-channel", (channelId) => {
@@ -59,14 +82,19 @@ io.on("connection", (socket) => {
   // Handle sending messages
   socket.on("send-message", async (data) => {
     try {
-      const { channelId, message, user } = data;
+      const { channelId, message } = data;
+      const userData = {
+        id: socket.user.id || socket.user._id,
+        username: socket.user.username,
+        avatar: socket.user.avatar,
+      };
 
       // Create message object
       const messageData = {
-        id: Date.now(), // Temporary ID for real-time display
+        id: Date.now(),
         channelId,
         message,
-        user,
+        user: userData,
         timestamp: new Date(),
       };
 
@@ -115,13 +143,13 @@ io.on("connection", (socket) => {
   //Handle remove message
   socket.on("delete-message", async (data) => {
     try {
-      const { messageId, userId, channelId } = data;
+      const { messageId, channelId } = data;
+      const result = await messageController.deleteMessage({
+        messageId,
+        user: socket.user,
+      });
 
-      // First verify the user has permission to delete (similar to your controller logic)
-      const Message = require("../app/models/Message");
-      const message = await Message.findById(messageId);
-
-      if (!message) {
+      if (result.status == 404) {
         socket.emit("delete-error", {
           error: "Message not found",
           messageId,
@@ -130,7 +158,7 @@ io.on("connection", (socket) => {
       }
 
       // Check if user owns the message (or is admin)
-      if (message.user.id !== userId) {
+      if (result.status == 403) {
         socket.emit("delete-error", {
           error: "Not authorized to delete this message",
           messageId,
@@ -138,21 +166,57 @@ io.on("connection", (socket) => {
         return;
       }
 
-      // Delete from database
-      await Message.findByIdAndDelete(messageId);
+      if (result.status == 500) {
+        socket.emit("delete-error", {
+          error: result.error,
+        });
+        return;
+      }
 
       // Broadcast to all users in the channel that the message was deleted
       io.to(channelId).emit("message-deleted", {
         messageId,
         channelId,
-        deletedBy: userId,
+        deletedBy: socket.user.id || socket.user._id,
       });
-
-      console.log(`Message ${messageId} deleted by user ${userId}`);
     } catch (error) {
       console.error("Error deleting message:", error);
       socket.emit("delete-error", {
         error: "Failed to delete message",
+        messageId: data.messageId,
+      });
+    }
+  });
+
+  // Handle editing a message
+  socket.on("edit-message", async (data) => {
+    try {
+      const { messageId, newMessage, channelId } = data;
+      const result = await messageController.editMessage({
+        messageId,
+        newMessage,
+        user: socket.user,
+      });
+
+      if (!result.success) {
+        socket.emit("edit-error", {
+          error: result.message,
+          messageId,
+        });
+        return;
+      }
+
+      // Broadcast to all users in the channel that the message was edited
+      io.to(channelId).emit("message-edited", {
+        messageId,
+        channelId,
+        newMessage,
+        editedBy: socket.user.id,
+      });
+    } catch (error) {
+      console.error("Error editing message:", error);
+      socket.emit("edit-error", {
+        error: "Failed to edit message",
         messageId: data.messageId,
       });
     }
