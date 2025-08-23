@@ -409,6 +409,53 @@ class ServerController {
       res.status(500).json({ message: "Internal server error" });
     }
   }
+
+  // [POST] /:serverId /* user leaves a server */
+  async leaveServer(req, res) {
+    try {
+      const { serverId } = req.params;
+      const userId = req.user.id;
+
+      const server = await Server.findById(serverId);
+      if (!server) {
+        return res.status(404).json({ message: "Server not found" });
+      }
+
+      // Prevent owner from leaving their own server
+      if (server.isOwner(userId)) {
+        return res.status(400).json({
+          message:
+            "Server owner cannot leave the server. Transfer ownership first.",
+        });
+      }
+
+      // Check if user is a member
+      if (!server.isMember(userId)) {
+        return res
+          .status(400)
+          .json({ message: "You are not a member of this server" });
+      }
+
+      // Remove user from server members
+      server.members = server.members.filter(
+        (member) => member.userId.toString() !== userId.toString()
+      );
+
+      // Remove server from user's servers array
+      await User.findByIdAndUpdate(userId, {
+        $pull: { servers: serverId },
+      });
+
+      await server.save();
+
+      res
+        .status(200)
+        .json({ message: "You have left the server successfully" });
+    } catch (error) {
+      console.error("Error leaving server:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
 }
 
 module.exports = new ServerController();

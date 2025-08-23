@@ -383,6 +383,59 @@ router.post(
   serverController.joinServerByInvite
 );
 
+/**
+ * @swagger
+ * /server/{serverId}:
+ *   post:
+ *     summary: Leave a server
+ *     tags: [Servers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: serverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Server ID to leave
+ *     responses:
+ *       200:
+ *         description: Successfully left the server
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "You have left the server successfully"
+ *       400:
+ *         description: Owner cannot leave or not a member
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Server owner cannot leave the server. Transfer ownership first."
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Server not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Server not found"
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/:serverId', serverController.leaveServer);
+
 // Use channel router for channel-related routes
 router.use("/:serverId/channels", channelRouter);
 

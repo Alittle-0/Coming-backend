@@ -23,7 +23,7 @@ app.use(cookieParser());
 // Serve static files (uploaded images)
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
-const allowedOrigins = process.env.ORIGIN?.split(",");
+const allowedOrigins = process.env.ORIGIN ? process.env.ORIGIN.split(",") : [];
 
 app.use(
   cors({
