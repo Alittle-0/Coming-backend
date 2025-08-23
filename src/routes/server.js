@@ -434,7 +434,7 @@ router.post(
  *       500:
  *         description: Internal server error
  */
-router.post('/:serverId', serverController.leaveServer);
+router.post('/:serverId', middlewareController.verifyToken, serverController.leaveServer);
 
 // Use channel router for channel-related routes
 router.use("/:serverId/channels", channelRouter);
